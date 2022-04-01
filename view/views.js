@@ -1,7 +1,9 @@
 import express from 'express';
+import dotenv from 'dotenv'
 import {Cliente} from "../entities/cliente.js"
 import { Email } from '../entities/email.js';
 
+dotenv.config()
 const app = express()
 
 app.use(express.json());
@@ -26,6 +28,7 @@ app.get("/clientes/cpf/:cpf", async (req,res)=>{
 app.post("/clientes/mensagem/", async (req,res)=>{
     try{ 
         const contato = {
+            assunto: req.body.assunto != undefined ? req.body.assunto : "",
             mensagem: req.body.mensagem,
             cpf: req.body.CPF
         }
@@ -34,6 +37,14 @@ app.post("/clientes/mensagem/", async (req,res)=>{
             let dadosCliente = await cliente.getCliente() 
             if(dadosCliente !== null){
                 let emailCliente = await dadosCliente.Email;
+                const email = new Email(process.env.NOME_EMAIL,process.env.EMAIL_DEFAULT,process.env.PASS_DEFAULT,emailCliente);
+                try{
+                    email.criaConexao();
+                    email.setMensagem(contato.assunto,contato.mensagem);
+                    email.enviaEmail();
+                }catch(error){
+                    return res.sendStatus(500)
+                }
                 return res.send(200)
             }
             return res.send(404)
